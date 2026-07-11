@@ -12,7 +12,7 @@ fn main() -> io::Result<()> {
     execute!(stdout, Hide).unwrap();
 
     draw_ground()?;
-
+	
     run_char(stdout, groundx, groundy)?;
 
     disable_raw_mode()?;
@@ -33,38 +33,49 @@ fn draw_ground() -> io::Result<(u16, u16)> {
     Ok((groundx, groundy))
 }
 
-fn run_char(mut stdout: io::Stdout, groundx: u16, groundy: u16) -> io::Result<()> {
-    let mut x: u16 = 0;
+fn run_char(mut stdout: io::Stdout, groundx: u16, groundy: u16, ) -> io::Result<()> {    
+	let mut x: u16 = 0;
     let mut y: u16 = 0;
     let mut velocityx: i16 = 0;
     let mut velocityy: i16 = 0;
     let mut spaces: u16 = 0;
     let mut spaces2: u16 = 0;
 
-    loop {		
+    loop {
+    	let mut right = false;
+    	let mut left = false;
+    	let mut up = false;
+    	let mut down = false;	
+    			        	
         if poll(Duration::from_millis(120))? {
-            let event = read()?;
-            if let Event::Key(key) = event {
+            if let Event::Key(key) = read()? {
                 if key.kind == KeyEventKind::Press {
-                    if key.code == KeyCode::Char('q') {
-                        break;
+                	match key.code {
+                    	KeyCode::Char('d') => right = true,
+                        KeyCode::Char('a') => left = true,
+                        KeyCode::Char('w') => up = true,
+                        KeyCode::Char('s') => down = true,
+                        KeyCode::Char('q') => return Ok(()),
+                        _ => {}
                     }
-                }
+                }                    
 
                 draw_ground()?;
 
-                if key.code == KeyCode::Char('d') {
+
+
+                if right {
                     x += 1;
                     velocityx += 2;
-                } else if key.code == KeyCode::Char('a') {
+                } else if left {
                     if x > 0 { x -= 1; };
                     velocityx -= 2;
                 }
 
-                if key.code == KeyCode::Char('s') {
+                if down {
                     if y + 1 == 3 { y += 1; }
                     velocityy += 2;
-                } else if key.code == KeyCode::Char('w') && y == (groundy - 1) {
+                } else if up && y == (groundy - 1) {
                     y -= 3; 
                     velocityy -= 2;
                 }             
@@ -82,6 +93,7 @@ fn run_char(mut stdout: io::Stdout, groundx: u16, groundy: u16) -> io::Result<()
         }
 
         draw_ground()?;
+
 
         x = (x as i16 + velocityx).max(0) as u16;
         y = (y as i16 + velocityy).max(0) as u16;
