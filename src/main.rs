@@ -1,40 +1,48 @@
 use crossterm::event::{poll, read, Event, KeyCode, KeyEventKind};
-use crossterm::{execute, terminal::{disable_raw_mode, enable_raw_mode}, style::Print, cursor::{MoveTo, Hide, Show}};
+use crossterm::{execute, terminal::{disable_raw_mode, enable_raw_mode, size}, style::Print, cursor::{MoveTo, Hide, Show}};
 use std::io::{self, Write};
 use std::time::Duration;
 
+fn main() -> io::Result<()> {
+    let mut stdout = io::stdout(); 
+    let (groundx, groundy) = draw_ground()?; 
+
+    print!("\x1B[2J\x1B[1;1H");
+    enable_raw_mode()?;
+    execute!(stdout, Hide).unwrap();
+
+    draw_ground()?;
+
+    run_char(stdout, groundx, groundy)?;
+
+    disable_raw_mode()?;
+    execute!(io::stdout(), Show).unwrap();
+    Ok(())
+}
 
 fn draw_ground() -> io::Result<(u16, u16)> {
     let mut stdout = io::stdout();
-    let mut groundx: u16 = 0;
     let groundy: u16 = 12; 
+    let (width, _) = size()?;
     
-    while groundx != 55 {
+    for groundx in 0..width {
         execute!(stdout, MoveTo(groundx, groundy), Print("▔"))?;
-        groundx += 1;    
     }
     
+    let groundx: u16 = width;
     Ok((groundx, groundy))
 }
 
-fn main() -> io::Result<()> {
-	let mut stdout = io::stdout(); 
-	let (groundx, groundy) = draw_ground()?; 
-	let mut x: u16 = 0;
-	let mut y: u16 = 0;
-	let mut velocityx: i16 = 0;
-	let mut velocityy: i16 = 0;
+fn run_char(mut stdout: io::Stdout, groundx: u16, groundy: u16) -> io::Result<()> {
+    let mut x: u16 = 0;
+    let mut y: u16 = 0;
+    let mut velocityx: i16 = 0;
+    let mut velocityy: i16 = 0;
     let mut spaces: u16 = 0;
     let mut spaces2: u16 = 0;
 
-    print!("\x1B[2J\x1B[1;1H");
-	enable_raw_mode()?;
-	execute!(stdout, Hide).unwrap();
-
-	draw_ground()?;
-
-	loop {		
-		if poll(Duration::from_millis(120))? {
+    loop {		
+        if poll(Duration::from_millis(120))? {
             let event = read()?;
             if let Event::Key(key) = event {
                 if key.kind == KeyEventKind::Press {
@@ -43,31 +51,27 @@ fn main() -> io::Result<()> {
                     }
                 }
 
-				draw_ground()?;
+                draw_ground()?;
 
                 if key.code == KeyCode::Char('d') {
                     x += 1;
                     velocityx += 2;
                 } else if key.code == KeyCode::Char('a') {
-                    if x > 0 {
-                    	x -= 1; 
-                    };
+                    if x > 0 { x -= 1; };
                     velocityx -= 2;
                 }
 
                 if key.code == KeyCode::Char('s') {
-                    if y + 1 == 3 {
-                        y += 1;
-                    }
+                    if y + 1 == 3 { y += 1; }
                     velocityy += 2;
                 } else if key.code == KeyCode::Char('w') && y == (groundy - 1) {
-                  	y -= 3; 
-                  	velocityy -= 2;
+                    y -= 3; 
+                    velocityy -= 2;
                 }             
-            }         
+            }          
         }
 
-		if x > groundx {
+        if x > groundx {
             if y < 50 { y += 1; } 
         } else if y < (groundy - 1) {
             velocityy += 1;
@@ -77,21 +81,20 @@ fn main() -> io::Result<()> {
             velocityy = 0;  
         }
 
-		x = (x as i16 + velocityx).max(0) as u16;
-		y = (y as i16 + velocityy).max(0) as u16;
+        draw_ground()?;
+
+        x = (x as i16 + velocityx).max(0) as u16;
+        y = (y as i16 + velocityy).max(0) as u16;
 
         if x != spaces || y != spaces2 {
-           execute!(stdout, MoveTo(spaces.max(0) as u16, spaces2.max(0) as u16), Print(" "))?;
-           execute!(stdout, MoveTo(x.max(0) as u16, y.max(0) as u16), Print("i"))?;
-           stdout.flush()?;             
-           spaces = x; 
-           spaces2 = y; 
-      }        
+            execute!(stdout, MoveTo(spaces.max(0), spaces2.max(0)), Print(" "))?;
+            execute!(stdout, MoveTo(x.max(0), y.max(0)), Print("i"))?;
+            stdout.flush()?;            
+            spaces = x; 
+            spaces2 = y; 
+        }      
 
-		velocityx = 0;
-      
-	}
-	disable_raw_mode()?;
-	execute!(stdout, Show).unwrap();
-	Ok(())
+        velocityx = 0;
+    }
+    Ok(())
 }
