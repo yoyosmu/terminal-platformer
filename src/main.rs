@@ -2,29 +2,27 @@ use crossterm::event::{poll, read, Event, KeyCode, KeyEventKind};
 use crossterm::{execute, terminal::{disable_raw_mode, enable_raw_mode, size}, style::Print, cursor::{MoveTo, Hide, Show}};
 use std::io::{self};
 use std::time::Duration;
-
 fn main() -> io::Result<()> {
 	let mut x: u16 = 0;
 	let mut y: u16 = 0;
 	let mut velocityy: i16 = 0;
 	let mut prev_x: u16 = 0;
 	let mut prev_y: u16 = 0;	
-    execute!(io::stdout(), crossterm::terminal::Clear(crossterm::terminal::ClearType::All),  crossterm::cursor::MoveTo(0, 0))?; 
     let mut stdout = io::stdout(); 
+
     enable_raw_mode()?;
 	execute!(stdout, Hide).unwrap();
-	
+	execute!(io::stdout(), crossterm::terminal::Clear(crossterm::terminal::ClearType::All),  crossterm::cursor::MoveTo(0, 0))?; 
 	draw_ground(&mut stdout)?;
    		
     loop {
-   		let mut right = false;
-   		let mut left = false;
+    	let mut right = false;
+    	let mut left = false;
    		let mut up = false;
-   		let mut down = false;    
-		let (cols, rows) = size()?;
-		let max_x = cols.saturating_sub(1);
-	    let max_y = rows.saturating_sub(1);
-
+  		let mut down = false;		
+		let (width, height) = size()?;
+		let max_x = width.saturating_sub(1);
+	    let max_y = height.saturating_sub(1);
 		if poll(Duration::from_millis(100))? {
             if let Event::Key(key) = read()? {
                 if key.kind == KeyEventKind::Press {
@@ -33,14 +31,10 @@ fn main() -> io::Result<()> {
                         KeyCode::Char('a') => left = true,
                         KeyCode::Char('w') => up = true,
                         KeyCode::Char('s') => down = true,
-                        KeyCode::Char('q') => {
-                        	execute!(io::stdout(), Show).unwrap();
-                            disable_raw_mode()?;
-                            return Ok(());
-                        },
+                        KeyCode::Char('q') => {execute!(io::stdout(), Show).unwrap(); disable_raw_mode()?; return Ok(()); },
                         _ => {}
                     }
-                }
+                }             
             }
     	}
             if right {
@@ -53,15 +47,13 @@ fn main() -> io::Result<()> {
                 y = y.saturating_add(1);
                 velocityy = velocityy.saturating_add(1);
             }
-            if up && y == 14  {
+	            if up && y == height.saturating_sub(21) {
                 velocityy = velocityy.saturating_sub(4);
                 y = y.saturating_sub(1);
             }
-
 			y = y.saturating_add(1);
 			velocityy = velocityy.saturating_add(1);
 			y = (y as i16 + velocityy).max(0) as u16;
-
 			if y >= max_y {
 			    y = max_y;         
 			    velocityy = 0;   
@@ -73,9 +65,8 @@ fn main() -> io::Result<()> {
 			        velocityy = 0;
 			    }
 			}
-
-			if y >= 14 {
-				y = 14;
+			if y >= height.saturating_sub(21) {
+				y = height.saturating_sub(21);
 				velocityy = 0;
 			}
 			
@@ -87,7 +78,7 @@ fn main() -> io::Result<()> {
 				execute!(io::stdout(), MoveTo(x.max(0), y.max(0)), Print("i"))?;
 				prev_y = y;
 				prev_x = x;
-			}    		  
+			}	  
     }
 }
 
