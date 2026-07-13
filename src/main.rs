@@ -14,8 +14,7 @@ fn main() -> io::Result<()> {
     enable_raw_mode()?;
 	execute!(stdout, Hide).unwrap();
 	
-	let (width, height) = size()?;
-	draw_ground(&mut stdout, width)?;
+	draw_ground(&mut stdout)?;
    		
     loop {
    		let mut right = false;
@@ -92,9 +91,10 @@ fn main() -> io::Result<()> {
     }
 }
 
-fn draw_ground(stdout: &mut io::Stdout, width: u16) -> io::Result<()> {
+fn draw_ground(stdout: &mut io::Stdout) -> io::Result<()> {
 	let (width, height) = size()?;
 	let ground_y = height.saturating_sub(20);
+	
     execute!(stdout, MoveTo(0, ground_y))?;
     for _ in 0..width {
         execute!(stdout, Print('▔'))?;
