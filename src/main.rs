@@ -19,6 +19,9 @@ fn main() -> io::Result<()> {
    		let mut left = false;
    		let mut up = false;
    		let mut down = false;    
+		let (cols, rows) = size()?;
+		let max_x = cols.saturating_sub(1);
+	    let max_y = rows.saturating_sub(1);
 
 		if poll(Duration::from_millis(100))? {
             if let Event::Key(key) = read()? {
@@ -37,22 +40,37 @@ fn main() -> io::Result<()> {
                     }
                 }
             }
-			if right {
-				x += 1;
-			}
-			if left {
-				x = x.saturating_sub(1);
-			}
-			if down {
-				y += 1;
-				velocityy += 2;
-			}
-			if up {
-				velocityy -= 2;
-				y = y.saturating_sub(1);
-			}
+            if right {
+                x = x.saturating_add(1);
+            }
+            if left {
+                x = x.saturating_sub(1);
+            }
+            if down {
+                y = y.saturating_add(1);
+                velocityy = velocityy.saturating_add(1);
+            }
+            if up {
+                velocityy = velocityy.saturating_sub(2);
+                y = y.saturating_sub(1);
+            }
 
 			y = (y as i16 + velocityy).max(0) as u16;
+
+			if y >= max_y {
+			    y = max_y;         
+			    velocityy = 0;   
+			}
+			
+			if y == 0 {
+			    y = 0;            
+			    if velocityy < 0 { 
+			        velocityy = 0;
+			    }
+			}
+			
+			x = x.min(max_x);
+            y = y.min(max_y);
                 
 			if x != prev_x || y != prev_y {
 				execute!(io::stdout(), MoveTo(prev_x.max(0), prev_y.max(0)), Print(" "))?;
