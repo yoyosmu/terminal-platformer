@@ -42,6 +42,7 @@ fn main() -> io::Result<()> {
                     }
                 }
             }
+    	}
             if right {
                 x = x.saturating_add(1);
             }
@@ -52,7 +53,7 @@ fn main() -> io::Result<()> {
                 y = y.saturating_add(1);
                 velocityy = velocityy.saturating_add(1);
             }
-            if up && y == 27  {
+            if up && y == 14  {
                 velocityy = velocityy.saturating_sub(4);
                 y = y.saturating_sub(1);
             }
@@ -73,8 +74,8 @@ fn main() -> io::Result<()> {
 			    }
 			}
 
-			if y >= 27 {
-				y = 27;
+			if y >= 14 {
+				y = 14;
 				velocityy = 0;
 			}
 			
@@ -86,8 +87,7 @@ fn main() -> io::Result<()> {
 				execute!(io::stdout(), MoveTo(x.max(0), y.max(0)), Print("i"))?;
 				prev_y = y;
 				prev_x = x;
-			}
-    	}	  
+			}    		  
     }
 }
 
