@@ -15,8 +15,7 @@ fn main() -> io::Result<()> {
 	execute!(stdout, Hide).unwrap();
 	
 	let (width, height) = size()?;
-	let ground_y = height.saturating_sub(1);
-	draw_ground(&mut stdout, width, ground_y)?;
+	draw_ground(&mut stdout, width)?;
    		
     loop {
    		let mut right = false;
@@ -54,11 +53,13 @@ fn main() -> io::Result<()> {
                 y = y.saturating_add(1);
                 velocityy = velocityy.saturating_add(1);
             }
-            if up {
-                velocityy = velocityy.saturating_sub(2);
+            if up && y == 27  {
+                velocityy = velocityy.saturating_sub(4);
                 y = y.saturating_sub(1);
             }
 
+			y = y.saturating_add(1);
+			velocityy = velocityy.saturating_add(1);
 			y = (y as i16 + velocityy).max(0) as u16;
 
 			if y >= max_y {
@@ -71,6 +72,11 @@ fn main() -> io::Result<()> {
 			    if velocityy < 0 { 
 			        velocityy = 0;
 			    }
+			}
+
+			if y >= 27 {
+				y = 27;
+				velocityy = 0;
 			}
 			
 			x = x.min(max_x);
@@ -86,9 +92,9 @@ fn main() -> io::Result<()> {
     }
 }
 
-fn draw_ground(stdout: &mut io::Stdout, width: u16, ground_y: u16) -> io::Result<()> {
+fn draw_ground(stdout: &mut io::Stdout, width: u16) -> io::Result<()> {
 	let (width, height) = size()?;
-	let ground_y = height.saturating_sub(25);
+	let ground_y = height.saturating_sub(20);
     execute!(stdout, MoveTo(0, ground_y))?;
     for _ in 0..width {
         execute!(stdout, Print('▔'))?;
