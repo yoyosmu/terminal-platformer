@@ -6,9 +6,10 @@ use std::time::Duration;
 fn main() -> io::Result<()> {
 	let mut x: u16 = 0;
 	let mut y: u16 = 0;
+	let mut velocityy: i16 = 0;
 	let mut prev_x: u16 = 0;
 	let mut prev_y: u16 = 0;	
-    print!("\x1B[2J\x1B[1;1H");
+    execute!(io::stdout(), crossterm::terminal::Clear(crossterm::terminal::ClearType::All),  crossterm::cursor::MoveTo(0, 0))?; 
     let mut stdout = io::stdout(); 
     enable_raw_mode()?;
 	execute!(stdout, Hide).unwrap();
@@ -44,10 +45,14 @@ fn main() -> io::Result<()> {
 			}
 			if down {
 				y += 1;
+				velocityy += 2;
 			}
 			if up {
+				velocityy -= 2;
 				y = y.saturating_sub(1);
 			}
+
+			y = (y as i16 + velocityy).max(0) as u16;
                 
 			if x != prev_x || y != prev_y {
 				execute!(io::stdout(), MoveTo(prev_x.max(0), prev_y.max(0)), Print(" "))?;
