@@ -2,25 +2,40 @@ use crossterm::event::{poll, read, Event, KeyCode, KeyEventKind};
 use crossterm::{execute, terminal::{disable_raw_mode, enable_raw_mode, size}, style::Print, cursor::{MoveTo, Hide, Show}};
 use std::io::{self};
 use std::time::Duration;
-fn main() -> io::Result<()> {
-	let mut x: u16 = 0;
-	let mut y: u16 = 0;
-	let mut velocityy: i16 = 0;
-	let mut prev_x: u16 = 0;
-	let mut prev_y: u16 = 0;	
-    let mut stdout = io::stdout(); 
 
+fn main() -> io::Result<()> {
+	struct Player {
+	    x: u16,
+	    y: u16,
+	    velocity_y: i16,
+	    prev_x: u16,
+	    prev_y: u16,
+	    main_char: char,
+	}
+	let mut player = Player {
+	    x: 0,
+	    y: 0,
+	    velocity_y: 0,
+	    prev_x: 0,
+	    prev_y: 0,
+	    main_char: 'i',
+	};
+	
+	let (width, height) = size()?;	
+	let ground_y = height.saturating_sub(20);
+	let ground_width = width;
+    let mut stdout = io::stdout(); 
+	
     enable_raw_mode()?;
 	execute!(stdout, Hide).unwrap();
-	execute!(io::stdout(), crossterm::terminal::Clear(crossterm::terminal::ClearType::All),  crossterm::cursor::MoveTo(0, 0))?; 
-	draw_ground(&mut stdout)?;
+	execute!(io::stdout(), crossterm::terminal::Clear(crossterm::terminal::ClearType::All), MoveTo(0, 0))?; 
+	draw_ground(&mut stdout, ground_y, ground_width)?;
    		
     loop {
     	let mut right = false;
     	let mut left = false;
    		let mut up = false;
   		let mut down = false;		
-		let (width, height) = size()?;
 		let max_x = width.saturating_sub(1);
 	    let max_y = height.saturating_sub(1);
 		if poll(Duration::from_millis(100))? {
@@ -38,56 +53,55 @@ fn main() -> io::Result<()> {
             }
     	}
             if right {
-                x = x.saturating_add(1);
+                player.x = player.x.saturating_add(1);
             }
             if left {
-                x = x.saturating_sub(1);
+                player.x = player.x.saturating_sub(1);
             }
             if down {
-                y = y.saturating_add(1);
-                velocityy = velocityy.saturating_add(1);
+                player.y = player.y.saturating_add(1);
+                player.velocity_y = player.velocity_y.saturating_add(1);            
             }
-	            if up && y == height.saturating_sub(21) {
-                velocityy = velocityy.saturating_sub(4);
-                y = y.saturating_sub(1);
+	        if up && player.y == ground_y.saturating_sub(1) {
+                player.velocity_y = player.velocity_y.saturating_sub(4);
+                player.y = player.y.saturating_sub(1);
             }
-			y = y.saturating_add(1);
-			velocityy = velocityy.saturating_add(1);
-			y = (y as i16 + velocityy).max(0) as u16;
-			if y >= max_y {
-			    y = max_y;         
-			    velocityy = 0;   
+            
+			player.y = player.y.saturating_add(1);
+			player.velocity_y = player.velocity_y.saturating_add(1);
+			player.y = (player.y as i16 + player.velocity_y).max(0) as u16;
+			if player.y >= max_y {
+			    player.y = max_y;         
+			    player.velocity_y = 0;   
 			}
 			
-			if y == 0 {
-			    y = 0;            
-			    if velocityy < 0 { 
-			        velocityy = 0;
+			if player.y == 0 {
+			    player.y = 0;            
+			    if player.velocity_y < 0 { 
+			        player.velocity_y = 0;
 			    }
 			}
-			if y >= height.saturating_sub(21) {
-				y = height.saturating_sub(21);
-				velocityy = 0;
+			
+			if player.y >= ground_y.saturating_sub(1) {
+				player.y = ground_y.saturating_sub(1);
+				player.velocity_y = 0;
 			}
 			
-			x = x.min(max_x);
-            y = y.min(max_y);
+			player.x = player.x.min(max_x);
+            player.y = player.y.min(max_y);
                 
-			if x != prev_x || y != prev_y {
-				execute!(io::stdout(), MoveTo(prev_x.max(0), prev_y.max(0)), Print(" "))?;
-				execute!(io::stdout(), MoveTo(x.max(0), y.max(0)), Print("i"))?;
-				prev_y = y;
-				prev_x = x;
-			}	  
+			if player.x != player.prev_x || player.y != player.prev_y {
+				execute!(io::stdout(), MoveTo(player.prev_x.max(0), player.prev_y.max(0)), Print(" "))?;
+				execute!(io::stdout(), MoveTo(player.x.max(0), player.y.max(0)), Print(player.main_char))?;
+				player.prev_y = player.y;
+				player.prev_x = player.x;
+			} 
     }
 }
 
-fn draw_ground(stdout: &mut io::Stdout) -> io::Result<()> {
-	let (width, height) = size()?;
-	let ground_y = height.saturating_sub(20);
-	
+fn draw_ground(stdout: &mut io::Stdout, ground_y: u16, ground_width: u16) -> io::Result<()> {
     execute!(stdout, MoveTo(0, ground_y))?;
-    for _ in 0..width {
+    for _ in 0..ground_width {
         execute!(stdout, Print('▔'))?;
     }
     Ok(())
