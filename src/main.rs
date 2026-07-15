@@ -2,6 +2,7 @@ use crossterm::event::{poll, read, Event, KeyCode, KeyEventKind};
 use crossterm::{execute, terminal::{disable_raw_mode, enable_raw_mode, size}, style::Print, cursor::{MoveTo, Hide, Show}};
 use std::io::{self};
 use std::time::Duration;
+use std::collections::HashSet;
 
 fn main() -> io::Result<()> {
 	struct Player {
@@ -21,6 +22,7 @@ fn main() -> io::Result<()> {
 	    main_char: 'i',
 	};
 	
+	let mut occupied: HashSet<(u16, u16)> = HashSet::new();
 	let (width, height) = size()?;	
 	let ground_y = height.saturating_sub(20);
 	let ground_width = width;
@@ -29,8 +31,9 @@ fn main() -> io::Result<()> {
     enable_raw_mode()?;
 	execute!(stdout, Hide).unwrap();
 	execute!(io::stdout(), crossterm::terminal::Clear(crossterm::terminal::ClearType::All), MoveTo(0, 0))?; 
-	draw_ground(&mut stdout, ground_y, ground_width)?;
-   		
+	draw_ground(&mut stdout, ground_y, ground_width, &mut occupied)?;
+   	draw_terrain(&mut stdout, 60, ground_y.saturating_sub(1), &mut occupied)?;
+   	
     loop {
     	let mut right = false;
     	let mut left = false;
@@ -53,39 +56,54 @@ fn main() -> io::Result<()> {
             }
     	}
         if right {
-            player.x = player.x.saturating_add(1);
+            let next_x = player.x.saturating_add(1);
+            if !occupied.contains(&(next_x, player.y)) {
+                player.x = next_x;
+            }
         }
         if left {
-            player.x = player.x.saturating_sub(1);
+            let next_x = player.x.saturating_sub(1);
+            if !occupied.contains(&(next_x, player.y)) {
+                player.x = next_x;
+            }
         }
-
-        let on_ground = player.y >= ground_y.saturating_sub(1);
-
+        
+        let on_ground = occupied.contains(&(player.x, player.y + 1));
+        
         if up && on_ground {
             player.velocity_y = -3;
             player.y = player.y.saturating_add(1);
         }
-
         if down {
             player.velocity_y = player.velocity_y.saturating_add(1);
         }
-
+        
         player.velocity_y = player.velocity_y.saturating_add(1);
 
-        player.y = (player.y as i16 + player.velocity_y).max(0) as u16;
+        let fall_steps = player.velocity_y.abs();
+        let fall_dir = player.velocity_y.signum();
+        for _ in 0..fall_steps {
+            let next_y = player.y as i16 + fall_dir;
+            if next_y < 0 {
+                break;
+            }
+            let next_y = next_y as u16;
 
-        if player.y >= ground_y.saturating_sub(1) {
-            player.y = ground_y.saturating_sub(1);
-            player.velocity_y = 0;
+            if occupied.contains(&(player.x, next_y)) {
+                player.velocity_y = 0;
+                break;
+            }
+
+            player.y = next_y;
         }
 
         if player.y == 0 && player.velocity_y < 0 {
             player.velocity_y = 0;
         }
-
+        
         player.x = player.x.min(max_x);
         player.y = player.y.min(max_y);
-
+        
         if player.x != player.prev_x || player.y != player.prev_y {
             execute!(io::stdout(), MoveTo(player.prev_x, player.prev_y), Print(" "))?;
             execute!(io::stdout(), MoveTo(player.x, player.y), Print(player.main_char))?;
@@ -94,11 +112,23 @@ fn main() -> io::Result<()> {
         }
     }
 }
-
-fn draw_ground(stdout: &mut io::Stdout, ground_y: u16, ground_width: u16) -> io::Result<()> {
+fn draw_ground(stdout: &mut io::Stdout, ground_y: u16, ground_width: u16, occupied: &mut HashSet<(u16, u16)>) -> io::Result<()> {
     execute!(stdout, MoveTo(0, ground_y))?;
-    for _ in 0..ground_width {
+    for x in 0..ground_width {
         execute!(stdout, Print('▔'))?;
+        occupied.insert((x, ground_y));
+    }
+    Ok(())
+}
+
+fn draw_terrain(stdout: &mut io::Stdout, x: u16, y: u16, occupied: &mut HashSet<(u16, u16)>) -> io::Result<()> {
+    execute!(stdout, MoveTo(x, y), Print("🮈▔▔▔▔▔▔▔▔▔▔▍"))?;
+    for i in 0..12 {
+        occupied.insert((x + i, y));
+    }
+    for dy in 1..=3 {
+        occupied.insert((x, y + dy));
+        occupied.insert((x + 11, y + dy));
     }
     Ok(())
 }
