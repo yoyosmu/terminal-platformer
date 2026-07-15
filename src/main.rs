@@ -30,9 +30,9 @@ fn main() -> io::Result<()> {
 	
     enable_raw_mode()?;
 	execute!(stdout, Hide).unwrap();
-	execute!(io::stdout(), crossterm::terminal::Clear(crossterm::terminal::ClearType::All), MoveTo(0, 0))?; 
+	execute!(io::stdout(), crossterm::terminal::Clear(crossterm::terminal::ClearType::All), MoveTo(0, 0), Print(player.main_char))?; 
 	draw_ground(&mut stdout, ground_y, ground_width, &mut occupied)?;
-   	draw_terrain(&mut stdout, 60, ground_y.saturating_sub(1), &mut occupied)?;
+   	draw_terrain(&mut stdout, (width as f32 * 0.75) as u16, ground_y.saturating_sub(1), &mut occupied)?;
    	
     loop {
     	let mut right = false;
