@@ -52,50 +52,46 @@ fn main() -> io::Result<()> {
                 }             
             }
     	}
-            if right {
-                player.x = player.x.saturating_add(1);
-            }
-            if left {
-                player.x = player.x.saturating_sub(1);
-            }
-            if down {
-                player.y = player.y.saturating_add(1);
-                player.velocity_y = player.velocity_y.saturating_add(1);            
-            }
-	        if up && player.y == ground_y.saturating_sub(1) {
-                player.velocity_y = player.velocity_y.saturating_sub(4);
-                player.y = player.y.saturating_sub(1);
-            }
-            
-			player.y = player.y.saturating_add(1);
-			player.velocity_y = player.velocity_y.saturating_add(1);
-			player.y = (player.y as i16 + player.velocity_y).max(0) as u16;
-			if player.y >= max_y {
-			    player.y = max_y;         
-			    player.velocity_y = 0;   
-			}
-			
-			if player.y == 0 {
-			    player.y = 0;            
-			    if player.velocity_y < 0 { 
-			        player.velocity_y = 0;
-			    }
-			}
-			
-			if player.y >= ground_y.saturating_sub(1) {
-				player.y = ground_y.saturating_sub(1);
-				player.velocity_y = 0;
-			}
-			
-			player.x = player.x.min(max_x);
-            player.y = player.y.min(max_y);
-                
-			if player.x != player.prev_x || player.y != player.prev_y {
-				execute!(io::stdout(), MoveTo(player.prev_x.max(0), player.prev_y.max(0)), Print(" "))?;
-				execute!(io::stdout(), MoveTo(player.x.max(0), player.y.max(0)), Print(player.main_char))?;
-				player.prev_y = player.y;
-				player.prev_x = player.x;
-			} 
+        if right {
+            player.x = player.x.saturating_add(1);
+        }
+        if left {
+            player.x = player.x.saturating_sub(1);
+        }
+
+        let on_ground = player.y >= ground_y.saturating_sub(1);
+
+        if up && on_ground {
+            player.velocity_y = -3;
+            player.y = player.y.saturating_add(1);
+        }
+
+        if down {
+            player.velocity_y = player.velocity_y.saturating_add(1);
+        }
+
+        player.velocity_y = player.velocity_y.saturating_add(1);
+
+        player.y = (player.y as i16 + player.velocity_y).max(0) as u16;
+
+        if player.y >= ground_y.saturating_sub(1) {
+            player.y = ground_y.saturating_sub(1);
+            player.velocity_y = 0;
+        }
+
+        if player.y == 0 && player.velocity_y < 0 {
+            player.velocity_y = 0;
+        }
+
+        player.x = player.x.min(max_x);
+        player.y = player.y.min(max_y);
+
+        if player.x != player.prev_x || player.y != player.prev_y {
+            execute!(io::stdout(), MoveTo(player.prev_x, player.prev_y), Print(" "))?;
+            execute!(io::stdout(), MoveTo(player.x, player.y), Print(player.main_char))?;
+            player.prev_y = player.y;
+            player.prev_x = player.x;
+        }
     }
 }
 
